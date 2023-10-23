@@ -21,7 +21,7 @@ import numpy as np
 
 class ACBN0:
 
-  def __init__ ( self, prefix, pthr=0.95, workdir='./', mpi_qe='', nproc=1, qe_path='', qe_options='', mpi_python='', python_path='' ):
+  def __init__ ( self, prefix, pthr=0.95, workdir='./', mpi_qe='', nproc=1, qe_path='', qe_options='', mpi_python='', python_path='' , sbatch= False):
     from .defs.file_io import struct_from_inputfile_QE
     from .defs.upf_gaussfit import gaussian_fit
     from os.path import join
@@ -36,6 +36,7 @@ class ACBN0:
     self.mpi_python = mpi_python
     self.ppath = python_path
     self.qoption = qe_options
+    self.sbatch = sbatch
 
     self.uVals = {}
 
@@ -196,7 +197,29 @@ class ACBN0:
     for i,s in enumerate(species):
       struct['Hubbard_U({})'.format(i+1)] = uVals[s]
     return struct
-
+  
+  def create_sbatch(self):
+    with open('job.sh', 'w') as f:
+      f.write(
+        '''
+      #!/bin/bash   
+      #SBATCH -J lno-relax
+      #SBATCH -t 05:00:00
+      #SBATCH -N 1
+      #SBATCH -n 16
+      #SBATCH -o sbatch.out
+      #SBATCH -e sbatch.err
+      module load Compiler/Intel/19u5;
+      # source ~/venv/paoflow_slurm/bin/activate
+      qe=/home/a.geondzhian/src/qe-6.8_mod/bin
+      mpirun $qe/pw.x <scf.in>scf.out
+      mpirun $qe/pw.x <nscf.in>nscf.out
+      mpirun $qe/projwfc.x <projwfc.in>projwfc.out
+        '''
+      )
+    import os
+    os.system('chmd +x job.sh')
+    print('job.sh file created')
 
   def run_dft ( self, prefix, species, uVals ):
     from .defs.file_io import create_atomic_inputfile
@@ -213,9 +236,14 @@ class ACBN0:
     blocks,cards = struct_from_inputfile_QE(f'{prefix}.projwfc.in')
     create_atomic_inputfile('projwfc', blocks, cards)
 
-    executables = {'scf':'pw.x', 'nscf':'pw.x', 'projwfc':'projwfc.x'}
-    for c in ['scf', 'nscf', 'projwfc']:
-      ecode = self.exec_QE(executables[c], f'{c}.in')
+    # if sbatch option
+    if self.sbatch:
+      self.crete_sbatch() 
+      self.exec_command('sbatch -W job.sh')
+    else:
+      executables = {'scf':'pw.x', 'nscf':'pw.x', 'projwfc':'projwfc.x'}
+      for c in ['scf', 'nscf', 'projwfc']:
+        ecode = self.exec_QE(executables[c], f'{c}.in')
 
 
   def run_paoflow ( self, prefix, save_prefix, nspin ):

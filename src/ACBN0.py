@@ -201,21 +201,20 @@ class ACBN0:
   def create_sbatch(self):
     with open('job.sh', 'w') as f:
       f.write(
-        '''
-      #!/bin/bash   
-      #SBATCH -J lno-relax
-      #SBATCH -t 05:00:00
-      #SBATCH -N 1
-      #SBATCH -n 16
-      #SBATCH -o sbatch.out
-      #SBATCH -e sbatch.err
-      module load Compiler/Intel/19u5;
-      # source ~/venv/paoflow_slurm/bin/activate
-      qe=/home/a.geondzhian/src/qe-6.8_mod/bin
-      mpirun $qe/pw.x <scf.in>scf.out
-      mpirun $qe/pw.x <nscf.in>nscf.out
-      mpirun $qe/projwfc.x <projwfc.in>projwfc.out
-        '''
+        '''#!/bin/bash   
+#SBATCH -J lno-relax
+#SBATCH -t 05:00:00
+#SBATCH -N 1
+#SBATCH -n 16
+#SBATCH -o sbatch.out
+#SBATCH -e sbatch.err
+module load Compiler/Intel/19u5;
+# source ~/venv/paoflow_slurm/bin/activate
+qe=/home/a.geondzhian/src/qe-6.8_mod/bin
+mpirun $qe/pw.x <scf.in>scf.out
+mpirun $qe/pw.x <nscf.in>nscf.out
+mpirun $qe/projwfc.x <projwfc.in>projwfc.out
+'''
       )
     import os
     os.system('chmd +x job.sh')
@@ -238,7 +237,7 @@ class ACBN0:
 
     # if sbatch option
     if self.sbatch:
-      self.crete_sbatch() 
+      self.create_sbatch() 
       self.exec_command('sbatch -W job.sh')
     else:
       executables = {'scf':'pw.x', 'nscf':'pw.x', 'projwfc':'projwfc.x'}

@@ -44,16 +44,17 @@ class ACBN0:
 
     # Get structure information
     blocks,cards = struct_from_inputfile_QE(f'{self.prefix}.scf.in')
-    nspin = int(struct['nspin']) if 'nspin' in blocks['system'] else 1
+    nspin = 2 if 'nspin' in blocks['system'] else 1
 
     # Generate gaussian fits
     uspecies = []
     self.basis = {}
     for s in cards['ATOMIC_SPECIES'][1:]:
       ele,_,pp = s.split()
-      uspecies.append(ele)
-      atno,basis = gaussian_fit(pp)
-      self.basis[ele] = basis
+      if ele!='Li':
+        uspecies.append(ele)
+        atno,basis = gaussian_fit(pp)
+        self.basis[ele] = basis
 
     # Set initial UJ
     threshold_U = 0.01
@@ -337,7 +338,7 @@ mpirun $qe/projwfc.x <projwfc.in>projwfc.out
     state_lines = state_lines[sind:send]
 
     uVals = {}
-    for s in list(set(species)):
+    for s in list(set(species)-set('Li')):
       ostates = []
       ustates = []
       sn = s

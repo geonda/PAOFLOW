@@ -48,11 +48,13 @@ class ACBN0:
 
     # Generate gaussian fits
     uspecies = []
+    ne = []
     self.basis = {}
-    for s in cards['ATOMIC_SPECIES'][1:]:
+    for i,s in enumerate(cards['ATOMIC_SPECIES'][1:]):
       ele,_,pp = s.split()
       if ele!='Li':
         uspecies.append(ele)
+        ne.append(i+1)
         atno,basis = gaussian_fit(pp)
         self.basis[ele] = basis
 
@@ -67,10 +69,10 @@ class ACBN0:
     while not converged:
 
       # Update U values provided to inputfiles
-      for i,s in enumerate(uspecies):
-        blocks['Hubbard_U({})'.format(i+1)] = str(self.uVals[s])
+      for s,e in zip(uspecies,ne):
+        blocks['Hubbard_U({})'.format(e)] = str(self.uVals[s])
 
-      self.run_dft(self.prefix, uspecies, self.uVals)
+      self.run_dft(self.prefix, ne, uspecies, self.uVals)
 
       save_prefix = blocks['control']['prefix'].strip('"').strip("'")
       self.run_paoflow(self.prefix, save_prefix, nspin)
@@ -193,10 +195,10 @@ class ACBN0:
     return self.exec_command(command)
 
 
-  def assign_Us ( self, struct, species, uVals ):
+  def assign_Us ( self, struct, ne, species, uVals ):
     struct['lda_plus_u'] = '.true.'
-    for i,s in enumerate(species):
-      struct['Hubbard_U({})'.format(i+1)] = uVals[s]
+    for e,s in zip(ne,species):
+      struct['Hubbard_U({})'.format(e)] = uVals[s]
     return struct
   
   def create_sbatch(self):
@@ -221,16 +223,16 @@ mpirun $qe/projwfc.x <projwfc.in>projwfc.out
     os.system('chmd +x job.sh')
     print('job.sh file created')
 
-  def run_dft ( self, prefix, species, uVals ):
+  def run_dft ( self, prefix, ne, species, uVals ):
     from .defs.file_io import create_atomic_inputfile
     from .defs.file_io import struct_from_inputfile_QE
 
     blocks,cards = struct_from_inputfile_QE(f'{prefix}.scf.in')
-    blocks['system'] = self.assign_Us(blocks['system'], species, uVals)
+    blocks['system'] = self.assign_Us(blocks['system'], ne, species, uVals)
     create_atomic_inputfile('scf', blocks, cards)
 
     blocks,cards = struct_from_inputfile_QE(f'{prefix}.nscf.in')
-    blocks['system'] = self.assign_Us(blocks['system'], species, uVals)
+    blocks['system'] = self.assign_Us(blocks['system'], ne, species, uVals)
     create_atomic_inputfile('nscf', blocks, cards)
 
     blocks,cards = struct_from_inputfile_QE(f'{prefix}.projwfc.in')

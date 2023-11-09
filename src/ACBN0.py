@@ -103,15 +103,20 @@ class ACBN0:
     nspin = int(data['nspin'])
     species = data['atlabels'].split(',')
 
+
     lattice = np.array([float(v) for v in data['latvects'].split(',')])
     lattice = lattice.reshape((3,3)) / ang_to_bohr
 
     coords = np.array([float(v) for v in data['coords'].split(',')])
     coords = coords.reshape((coords.shape[0]//3,3)) / ang_to_bohr
-
+    print(species)
+    print(coords)
     split_bstr = lambda bstr : np.array([int(v) for v in bstr.split(',')])
     basis_dm = split_bstr(data['reduced_basis_dm'])
     basis_2e = split_bstr(data['reduced_basis_2e'])
+    tmp = [True for item in species if item !='Li' else False]
+    species = [item for item,condition in zip(species,tmp)  if condition ]  
+    coords = [item for item,condition in zip(coords,tmp)  if condition ]  
 
     gauss_basis = self.getbasis(self.basis, species, lattice, coords)
     nbasis = len(gauss_basis)

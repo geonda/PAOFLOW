@@ -114,7 +114,7 @@ class ACBN0:
     split_bstr = lambda bstr : np.array([int(v) for v in bstr.split(',')])
     basis_dm = split_bstr(data['reduced_basis_dm'])
     basis_2e = split_bstr(data['reduced_basis_2e'])
-    tmp = [True for item in species if item !='Li' else False]
+    tmp = [ True if item !='Li' else False for item in species  ]
     species = [item for item,condition in zip(species,tmp)  if condition ]  
     coords = [item for item,condition in zip(coords,tmp)  if condition ]  
 
